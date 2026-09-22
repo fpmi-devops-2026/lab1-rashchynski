@@ -103,7 +103,9 @@ docker run -d -p 8082:80 --name mynginxalpine -v $(pwd):/usr/share/nginx/html:ro
 </html>
 ```
 Результаты работы и тестирования      
-Запрос к смонтированной странице через curl http://localhost:8082 возвращает сформированный HTML-документ:
+Запрос к смонтированной странице через 
+```curl http://localhost:8082```
+возвращает сформированный HTML-документ:
 ```HTML
 <!DOCTYPE html>
 <html lang="ru">
