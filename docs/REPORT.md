@@ -23,16 +23,30 @@
 docker run -d -p 8081:80 --name mynginxlast nginx:latest
 docker run -d -p 8082:80 --name mynginxalpine nginx:alpine
 docker run -d -p 8083:80 --name mynginx1-28 nginx:1.28
+```
+
 Просмотр активных контейнеров и скачанных образов выполнялся командами docker ps и docker images.   Остановка и удаление контейнера mynginx1-28 выполнены командами: 
 
 ```bash
 docker stop mynginx1-28
 docker rm mynginx1-28
-Для подключения к запущенному контейнеру в интерактивном режиме с вызовом командной оболочки применялась команда docker exec -it mynginxlast sh.     Запуск отдельного временного контейнера Ubuntu в интерактивном режиме выполнен через docker run -it --name test_ubuntu ubuntu bash.     Для демонстрации монтирования томов (Bind Mount) в каталоге task1 был создан файл index.html. Контейнер mynginxalpine пересоздан с привязкой текущей рабочей директории к корню веб-сервера Nginx:
+```
+
+Для подключения к запущенному контейнеру в интерактивном режиме с вызовом командной оболочки применялась команда: 
+```bash
+docker exec -it mynginxlast sh.
+```
+Запуск отдельного временного контейнера Ubuntu в интерактивном режиме выполнен через:
+```bash
+docker run -it --name test_ubuntu ubuntu bash
+```
+Для демонстрации монтирования томов в каталоге task1 был создан файл index.html.    
+Контейнер mynginxalpine пересоздан с привязкой текущей рабочей директории к корню веб-сервера Nginx:
 ```bash
 docker stop mynginxalpine && docker rm mynginxalpine
 docker run -d -p 8082:80 --name mynginxalpine -v $(pwd):/usr/share/nginx/html:ro nginx:alpine
-Исходный код файла task1/index.html
+```
+Исходный код файла task1/index.html:
 ```HTML
 <!DOCTYPE html>
 <html lang="ru">
@@ -46,7 +60,8 @@ docker run -d -p 8082:80 --name mynginxalpine -v $(pwd):/usr/share/nginx/html:ro
     <p>Группа: 11</p>
 </body>
 </html>
-Результаты работы и тестирования   
+```
+Результаты работы и тестирования      
 Запрос к смонтированной странице через curl http://localhost:8082 возвращает сформированный HTML-документ:
 ```HTML
 <!DOCTYPE html>
@@ -61,3 +76,4 @@ docker run -d -p 8082:80 --name mynginxalpine -v $(pwd):/usr/share/nginx/html:ro
     <p>Группа: 11</p>
 </body>
 </html>
+```
