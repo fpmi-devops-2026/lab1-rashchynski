@@ -1,0 +1,24 @@
+services:
+  app:
+    image: nrashchynski/lab1-python-app:v1.0
+    container_name: compose-flask-app
+    environment:
+      - APP_TITLE=${APP_TITLE}
+    networks:
+      - app-network
+
+  proxy:
+    image: nginx:latest
+    container_name: compose-nginx-proxy
+    ports:
+      - "${NGINX_PORT}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

@@ -313,6 +313,132 @@ e6c2e040f413: Already exists
 v1.0: digest: sha256:2fcc373e88310b6db36e7bd2aadcc0618b1d3feb8e40123ca2c65e8c2a12a65d size: 856
 ```
 
+---
+
+## Задание 4. Описание многоконтейнерных приложений с помощью Docker Compose
+
+### Ход выполнения работы
+
+Исходный код файла task4/.env:
+```
+APP_PORT=5000
+NGINX_PORT=8080
+APP_TITLE=Задание 4: Docker Compose (Flask + Nginx Reverse Proxy)
+```
+
+Исходный код файла task4/nginx.conf:
+```
+events {
+    worker_connections 1024;
+}
+
+http {
+    server {
+        listen 80;
+
+        location / {
+            proxy_pass http://app:5000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+}
+```
+
+Исходный код файла task4/docker-compose.yml:
+```
+services:
+  app:
+    image: nrashchynski/lab1-python-app:v1.0
+    container_name: compose-flask-app
+    environment:
+      - APP_TITLE=${APP_TITLE}
+    networks:
+      - app-network
+
+  proxy:
+    image: nginx:latest
+    container_name: compose-nginx-proxy
+    ports:
+      - "${NGINX_PORT}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+```
+
+Ход выполнения работы и консольный вывод:
+Запуск сервисов в фоновом режиме:
+```Bash
+$ docker compose up -d
+```
+```
+[+] up 3/3
+ ✔ Network task4_app-network     Created
+ ✔ Container compose-flask-app   Started
+ ✔ Container compose-nginx-proxy Started
+ ```
+
+ Проверка статуса контейнеров:
+ ```Bash
+ $ docker compose ps
+ ```
+ ```
+NAME                  IMAGE                               COMMAND                  SERVICE   CREATED          STATUS          PORTS
+compose-flask-app     nrashchynski/lab1-python-app:v1.0   "python app.py"          app       About a minute   Up About a minute 5000/tcp
+compose-nginx-proxy   nginx:latest                        "/docker-entrypoint.…"   proxy     About a minute   Up About a minute 0.0.0.0:8080->80/tcp
+```
+
+Проверка ответа reverse proxy:
+```
+$ curl http://localhost:8080
+```
+```
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Задание 4: Docker Compose (Flask + Nginx Reverse Proxy)</title>
+</head>
+<body>
+    <h1>Задание 4: Docker Compose (Flask + Nginx Reverse Proxy)</h1>
+    <p>ФИО: Ращинский Назар Андреевич</p>
+    <p>Группа: 11</p>
+    <p>Приложение: Python / Flask</p>
+</body>
+</html>
+```
+
+Просмотр объединенных логов:
+```
+$ docker compose logs
+```
+```
+compose-flask-app    | 172.18.0.3 - - [23/Sep/2026 19:29:48] "GET / HTTP/1.1" 200 -
+compose-nginx-proxy  | 192.168.65.1 - - [23/Sep/2026:19:29:48 +0000] "GET / HTTP/1.1" 200 457 "-" "curl/8.7.1"
+```
+
+Остановка и удаление инфраструктуры:
+```
+$ docker compose down
+```
+[+] down 3/3
+ ✔ Container compose-nginx-proxy Removed                                                    0.1s
+ ✔ Container compose-flask-app   Removed                                                    3.1s
+ ✔ Network task4_app-network     Removed 
+ ```
+
+
+
 
 
 
