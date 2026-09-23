@@ -197,3 +197,122 @@ v1.0: digest: sha256:c8f5a97e64666d3feb6ba8141dde915ac6182a82dcf8fbc55d9a356d806
 EOF
 ```
 ---
+
+## Задание 3. Контейнеризация простого веб-приложения (Python/Flask)
+
+### Ход выполнения работы
+
+Исходный код файла task3/app.py:
+```python
+import os
+from flask import Flask
+
+app = Flask(__name__)
+
+APP_TITLE = os.getenv("APP_TITLE", "Лабораторная работа №1 — Задание 3")
+
+@app.route("/")
+def hello():
+    return f"""
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <title>{APP_TITLE}</title>
+    </head>
+    <body>
+        <h1>{APP_TITLE}</h1>
+        <p>ФИО: Ращинский Назар Андреевич</p>
+        <p>Группа: 11</p>
+        <p>Приложение: Python / Flask</p>
+    </body>
+    </html>
+    """
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+```
+
+Исходный код файла task3/requirements.txt:
+```txt
+Flask==3.0.3
+```
+
+Исходный код файла task3/Dockerfile:
+```Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app.py .
+
+ENV APP_TITLE="Лабораторная работа №1 — Задание 3 (Python/Flask)"
+
+EXPOSE 5000
+
+CMD ["python", "app.py"]
+```
+
+Ход выполнения работы и консольный вывод:
+Сборка собственного образа Python/Flask:
+```Bash
+$ docker build -t nrashchynski/lab1-python-app:v1.0 .
+```
+```
+[+] Building 20.5s (10/10) FINISHED
+ => [internal] load build definition from Dockerfile
+ => [internal] load metadata for docker.io/library/python:3.11-slim
+ => [1/5] FROM docker.io/library/python:3.11-slim
+ => [2/5] WORKDIR /app
+ => [3/5] COPY requirements.txt .
+ => [4/5] RUN pip install --no-cache-dir -r requirements.txt
+ => [5/5] COPY app.py .
+ => naming to docker.io/nrashchynski/lab1-python-app:v1.0
+ ```
+
+Запуск контейнера с переопределением переменной окружения ENV (-e):
+```Bash
+$ docker run -d -p 5001:5000 --name myflaskapp -e APP_TITLE="Задание 3: Демонстрация ENV в Flask" nrashchynski/lab1-python-app:v1.0
+```
+```
+d54a7021bf25ba3ad131fd3d15cffc276ba1d2562b8afd66fd006f757532a137
+```
+
+Проверка работы сервиса по порту 5001 (curl):
+```Bash
+$ curl http://localhost:5001
+```
+```Bash
+<!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <title>Задание 3: Демонстрация ENV в Flask</title>
+    </head>
+    <body>
+        <h1>Задание 3: Демонстрация ENV в Flask</h1>
+        <p>ФИО: Ращинский Назар Андреевич</p>
+        <p>Группа: 11</p>
+        <p>Приложение: Python / Flask</p>
+    </body>
+    </html>
+```
+
+Публикация образа в реестре Docker Hub:
+```Bash
+$ docker push nrashchynski/lab1-python-app:v1.0
+```
+```
+The push refers to repository [docker.io/nrashchynski/lab1-python-app]
+e6c2e040f413: Already exists 
+44136fa355b3: Already exists 
+03f370686e3a: Layer already exists 
+v1.0: digest: sha256:2fcc373e88310b6db36e7bd2aadcc0618b1d3feb8e40123ca2c65e8c2a12a65d size: 856
+```
+
+
+
+
