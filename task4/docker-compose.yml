@@ -1,11 +1,36 @@
 services:
+  db:
+    image: postgres:15-alpine
+    container_name: compose-postgres-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-net
+
   app:
-    image: nrashchynski/lab1-python-app:v1.0
+    image: nrashchynski/lab1-python-app:v1.1
     container_name: compose-flask-app
     environment:
       - APP_TITLE=${APP_TITLE}
+      - DB_HOST=db
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
-      - app-network
+      - frontend-net
+      - backend-net
 
   proxy:
     image: nginx:latest
@@ -17,8 +42,13 @@ services:
     depends_on:
       - app
     networks:
-      - app-network
+      - frontend-net
+
+volumes:
+  dbdata:
 
 networks:
-  app-network:
+  frontend-net:
+    driver: bridge
+  backend-net:
     driver: bridge

@@ -346,7 +346,11 @@ v1.1: digest: sha256:d79bf78670dbe957ccc9a53879513dec420f25119adf2d3614e5adf9281
 ```
 APP_PORT=5000
 NGINX_PORT=8080
-APP_TITLE=Задание 4: Docker Compose (Flask + Nginx Reverse Proxy)
+APP_TITLE=Задание 4: Docker Compose (Flask + Nginx + PostgreSQL)
+
+POSTGRES_DB=app_db
+POSTGRES_USER=app_user
+POSTGRES_PASSWORD=app_password
 ```
 
 Исходный код файла task4/nginx.conf:
@@ -373,13 +377,38 @@ http {
 Исходный код файла task4/docker-compose.yml:
 ```
 services:
+  db:
+    image: postgres:15-alpine
+    container_name: compose-postgres-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-net
+
   app:
-    image: nrashchynski/lab1-python-app:v1.0
+    image: nrashchynski/lab1-python-app:v1.1
     container_name: compose-flask-app
     environment:
       - APP_TITLE=${APP_TITLE}
+      - DB_HOST=db
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
-      - app-network
+      - frontend-net
+      - backend-net
 
   proxy:
     image: nginx:latest
@@ -391,10 +420,15 @@ services:
     depends_on:
       - app
     networks:
-      - app-network
+      - frontend-net
+
+volumes:
+  dbdata:
 
 networks:
-  app-network:
+  frontend-net:
+    driver: bridge
+  backend-net:
     driver: bridge
 
 ```
@@ -405,8 +439,12 @@ networks:
 $ docker compose up -d
 ```
 ```
-[+] up 3/3
- ✔ Network task4_app-network     Created
+[+] up 19/19
+ ✔ Image postgres:15-alpine     Pulled
+ ✔ Network task4_backend-net    Created
+ ✔ Volume task4_dbdata          Created
+ ✔ Network task4_frontend-net   Created
+ ✔ Container compose-postgres-db Healthy
  ✔ Container compose-flask-app   Started
  ✔ Container compose-nginx-proxy Started
  ```
@@ -416,9 +454,10 @@ $ docker compose up -d
  $ docker compose ps
  ```
  ```
-NAME                  IMAGE                               COMMAND                  SERVICE   CREATED          STATUS          PORTS
-compose-flask-app     nrashchynski/lab1-python-app:v1.0   "python app.py"          app       About a minute   Up About a minute 5000/tcp
-compose-nginx-proxy   nginx:latest                        "/docker-entrypoint.…"   proxy     About a minute   Up About a minute 0.0.0.0:8080->80/tcp
+NAME                  IMAGE                               COMMAND                  SERVICE   CREATED              STATUS                        PORTS
+compose-flask-app     nrashchynski/lab1-python-app:v1.1   "python app.py"          app       About a minute ago   Up 57 seconds                 5000/tcp
+compose-nginx-proxy   nginx:latest                        "/docker-entrypoint.…"   proxy     About a minute ago   Up 57 seconds                 0.0.0.0:8080->80/tcp, [::]:8080->80/tcp
+compose-postgres-db   postgres:15-alpine                  "docker-entrypoint.s…"   db        About a minute ago   Up About a minute (healthy)   5432/tcp
 ```
 
 Проверка ответа reverse proxy:
@@ -430,10 +469,10 @@ $ curl http://localhost:8080
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Задание 4: Docker Compose (Flask + Nginx Reverse Proxy)</title>
+    <title>Задание 4: Docker Compose (Flask + Nginx + PostgreSQL)</title>
 </head>
 <body>
-    <h1>Задание 4: Docker Compose (Flask + Nginx Reverse Proxy)</h1>
+    <h1>Задание 4: Docker Compose (Flask + Nginx + PostgreSQL)</h1>
     <p>ФИО: Ращинский Назар Андреевич</p>
     <p>Группа: 11</p>
     <p>Приложение: Python / Flask</p>
@@ -446,18 +485,23 @@ $ curl http://localhost:8080
 $ docker compose logs
 ```
 ```
-compose-flask-app    | 172.18.0.3 - - [23/Sep/2026 19:29:48] "GET / HTTP/1.1" 200 -
-compose-nginx-proxy  | 192.168.65.1 - - [23/Sep/2026:19:29:48 +0000] "GET / HTTP/1.1" 200 457 "-" "curl/8.7.1"
+compose-postgres-db  | PostgreSQL init process complete; ready for start up.
+compose-postgres-db  | 2026-09-24 13:46:18.296 UTC [1] LOG:  database system is ready to accept connections
+compose-flask-app    |  * Running on [http://172.19.0.3:5000](http://172.19.0.3:5000)
+compose-flask-app    | 172.18.0.3 - - [24/Sep/2026 13:47:44] "GET / HTTP/1.1" 200 -
+compose-nginx-proxy  | 192.168.65.1 - - [24/Sep/2026:13:47:44 +0000] "GET / HTTP/1.1" 200 455 "-" "curl/8.7.1"
 ```
 
 Остановка и удаление инфраструктуры:
 ```
 $ docker compose down
 ```
-[+] down 3/3
- ✔ Container compose-nginx-proxy Removed                                                    0.1s
- ✔ Container compose-flask-app   Removed                                                    3.1s
- ✔ Network task4_app-network     Removed 
+[+] down 4/4
+ ✔ Container compose-nginx-proxy Removed
+ ✔ Container compose-flask-app   Removed
+ ✔ Container compose-postgres-db Removed
+ ✔ Network task4_frontend-net    Removed
+ ✔ Network task4_backend-net     Removed
  ```
 
 
