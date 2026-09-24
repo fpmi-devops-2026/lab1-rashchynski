@@ -238,9 +238,11 @@ if __name__ == "__main__":
 Flask==3.0.3
 ```
 
-Исходный код файла task3/Dockerfile:
+Исходный код файла task3/Dockerfile с поддержкой безопасности (non-root пользователь app):
 ```Dockerfile
 FROM python:3.11-slim
+
+RUN useradd -m -u 1000 app
 
 WORKDIR /app
 
@@ -248,6 +250,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
+
+RUN chown -R app:app /app
+
+USER app
 
 ENV APP_TITLE="Лабораторная работа №1 — Задание 3 (Python/Flask)"
 
@@ -257,28 +263,34 @@ CMD ["python", "app.py"]
 ```
 
 Ход выполнения работы и консольный вывод:
+
 Сборка собственного образа Python/Flask:
 ```Bash
-$ docker build -t nrashchynski/lab1-python-app:v1.0 .
+$ docker build -t nrashchynski/lab1-python-app:v1.1 .
 ```
 ```
-[+] Building 20.5s (10/10) FINISHED
- => [internal] load build definition from Dockerfile
- => [internal] load metadata for docker.io/library/python:3.11-slim
- => [1/5] FROM docker.io/library/python:3.11-slim
- => [2/5] WORKDIR /app
- => [3/5] COPY requirements.txt .
- => [4/5] RUN pip install --no-cache-dir -r requirements.txt
- => [5/5] COPY app.py .
- => naming to docker.io/nrashchynski/lab1-python-app:v1.0
+[+] Building 9.1s (12/12) FINISHED
+ => [1/7] FROM docker.io/library/python:3.11-slim
+ => [2/7] RUN useradd -m -u 1000 app
+ => [3/7] WORKDIR /app
+ => [4/7] COPY requirements.txt .
+ => [5/7] RUN pip install --no-cache-dir -r requirements.txt
+ => [6/7] COPY app.py .
+ => [7/7] RUN chown -R app:app /app
+ => naming to docker.io/nrashchynski/lab1-python-app:v1.1
  ```
 
 Запуск контейнера с переопределением переменной окружения ENV (-e):
 ```Bash
-$ docker run -d -p 5001:5000 --name myflaskapp -e APP_TITLE="Задание 3: Демонстрация ENV в Flask" nrashchynski/lab1-python-app:v1.0
+$ docker run -d -p 5001:5000 --name myflaskapp -e APP_TITLE="Задание 3: Демонстрация ENV в Flask" nrashchynski/lab1-python-app:v1.1
 ```
 ```
 d54a7021bf25ba3ad131fd3d15cffc276ba1d2562b8afd66fd006f757532a137
+```
+
+```
+$ docker exec myflaskapp_v11 whoami
+app
 ```
 
 Проверка работы сервиса по порту 5001 (curl):
@@ -301,16 +313,27 @@ $ curl http://localhost:5001
     </html>
 ```
 
-Публикация образа в реестре Docker Hub:
+Анализ размера собранных образов:
+```
+$ docker image ls nrashchynski/lab1-python-app
+```
+```
+IMAGE                               TAG     ID             DISK USAGE   CONTENT SIZE
+nrashchynski/lab1-python-app        v1.0    2fcc373e8831   237MB        51.6MB
+nrashchynski/lab1-python-app        v1.1    d79bf78670db   237MB        51.6MB
+```
+
+Публикация образа v1.1 в реестре Docker Hub:
 ```Bash
-$ docker push nrashchynski/lab1-python-app:v1.0
+$ docker push nrashchynski/lab1-python-app:v1.1
 ```
 ```
 The push refers to repository [docker.io/nrashchynski/lab1-python-app]
-e6c2e040f413: Already exists 
-44136fa355b3: Already exists 
 03f370686e3a: Layer already exists 
-v1.0: digest: sha256:2fcc373e88310b6db36e7bd2aadcc0618b1d3feb8e40123ca2c65e8c2a12a65d size: 856
+bd36565c0fde: Layer already exists 
+d30485a0025c: Pushed 
+...
+v1.1: digest: sha256:d79bf78670dbe957ccc9a53879513dec420f25119adf2d3614e5adf9281faa27 size: 856
 ```
 
 ---
