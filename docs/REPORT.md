@@ -504,8 +504,153 @@ $ docker compose down
  ✔ Network task4_backend-net     Removed
  ```
 
+---
 
+## Задание 5. Ограничение ресурсов контейнера и миграции базы данных (FastAPI + Liquibase + PostgreSQL)
 
+### Исходный код проекта, конфигурации Docker Compose, миграции Liquibase в папке task5/
+
+### Ход выполнения работы
+
+Исходный код файла task5/.env:
+```env
+POSTGRES_DB=students_db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+DATABASE_URL=postgresql://postgres:postgres@db:5432/students_db
+```
+
+Исходный код файла task5/docker-compose.yml:
+```
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: students-postgres-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - student-net
+
+  liquibase:
+    image: liquibase/liquibase:latest
+    container_name: students-liquibase-migration
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - LIQUIBASE_COMMAND_URL=jdbc:postgresql://db:5432/${POSTGRES_DB}
+      - LIQUIBASE_COMMAND_USERNAME=${POSTGRES_USER}
+      - LIQUIBASE_COMMAND_PASSWORD=${POSTGRES_PASSWORD}
+      - LIQUIBASE_COMMAND_CHANGELOG_FILE=changelog.xml
+      - INSTALL_POSTGRESQL_DRIVER=true
+    volumes:
+      - ./changelog:/liquibase/changelog
+      - ./drivers/postgresql.jar:/liquibase/internal/lib/postgresql.jar
+    command: ["update"]
+    networks:
+      - student-net
+
+  app:
+    build: .
+    container_name: students-fastapi-app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+      liquibase:
+        condition: service_completed_successfully
+    networks:
+      - student-net
+
+volumes:
+  dbdata:
+
+networks:
+  student-net:
+    driver: bridge
+```
+
+Ход выполнения работы и консольный вывод:
+
+Сборка и запуск сервисов с логированием выполнения миграций:
+```
+$ docker compose up --build
+```
+```
+[+] Building 3.3s (12/12) FINISHED
+ => [internal] load build definition from Dockerfile
+ => [internal] load metadata for docker.io/library/python:3.11-slim
+ => CACHED [2/5] WORKDIR /app
+ => CACHED [3/5] COPY requirements.txt .
+ => CACHED [4/5] RUN pip install --no-cache-dir -r requirements.txt
+ => CACHED [5/5] COPY ./app ./app
+ => naming to docker.io/library/task5-app:latest
+
+[+] up 5/5
+ ✔ Image task5-app                Built
+ ✔ Network task5_student-net      Created
+ ✔ Container students-postgres-db Created
+ ✔ Container students-liquibase-migration Created
+ ✔ Container students-fastapi-app Created
+Attaching to students-fastapi-app, students-liquibase-migration, students-postgres-db
+
+students-postgres-db  | 2026-09-24 15:39:06.726 UTC [1] LOG:  starting PostgreSQL 15.19 on aarch64-unknown-linux-musl
+students-postgres-db  | 2026-09-24 15:39:06.729 UTC [1] LOG:  database system is ready to accept connections
+Container students-postgres-db Healthy
+
+students-liquibase-migration  | Starting Liquibase at 15:39:12 using Java 21.0.11
+students-liquibase-migration  | Liquibase Version: 5.0.4
+students-liquibase-migration  | Database is up to date, no changesets to execute
+students-liquibase-migration  | 
+students-liquibase-migration  | UPDATE SUMMARY
+students-liquibase-migration  | Run:                            0
+students-liquibase-migration  | Previously run:                 1
+students-liquibase-migration  | Filtered out:                   0
+students-liquibase-migration  | -------------------------------
+students-liquibase-migration  | Total change sets:              1
+students-liquibase-migration  | 
+students-liquibase-migration  | Liquibase command 'update' was executed successfully.
+students-liquibase-migration exited with code 0
+
+students-fastapi-app          | INFO:     Started server process [1]
+students-fastapi-app          | INFO:     Waiting for application startup.
+students-fastapi-app          | INFO:     Application startup complete.
+students-fastapi-app          | INFO:     Uvicorn running on [http://0.0.0.0:8000](http://0.0.0.0:8000) (Press CTRL+C to quit)
+```
+
+Проверка статуса активных контейнеров после применения миграций:
+```
+$ docker compose ps
+```
+```
+NAME                   IMAGE                COMMAND                  SERVICE   CREATED         STATUS                   PORTS
+students-fastapi-app   task5-app            "uvicorn app.main:ap…"   app       2 minutes ago   Up 2 minutes             0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+students-postgres-db   postgres:15-alpine   "docker-entrypoint.s…"   db        2 minutes ago   Up 2 minutes (healthy)   5432/tcp
+```
+
+Остановка и удаление инфраструктуры:
+```
+$ docker compose down
+```
+```
+[+] down 4/4
+ ✔ Container students-fastapi-app        Removed
+ ✔ Container students-liquibase-migration Removed
+ ✔ Container students-postgres-db        Removed
+ ✔ Network task5_student-net             Removed
+ ```
 
 
 

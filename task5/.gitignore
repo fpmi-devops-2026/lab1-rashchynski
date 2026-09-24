@@ -1,0 +1,28 @@
+# Переменные окружения 
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# IDE и редакторы
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Операционная система (macOS / Linux / Windows)
+.DS_Store
+Thumbs.db
+
+# Логи и временные файлы
+*.log
+.docker/
