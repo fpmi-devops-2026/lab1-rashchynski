@@ -694,10 +694,50 @@ clean:
 ```
 
 Результаты запуска и тестирование Ollama   
-Запуск локального окружения выполнен командой `make local-up`:
+Запуск локального окружения:
+```make local-up```
+```
+docker compose --env-file .env -f compose.local.yaml up -d --build
+[+] up 5/5
+ ✔ Image ollama/ollama:latest Pulled                                                                             1053.7s
+[+] Building 6.6s (12/12) FINISHED                                                                                      
+ => [internal] load local bake definitions                                                                         0.0s
+ => => reading from stdin 538B                                                                                     0.0s
+ => [internal] load build definition from Dockerfile                                                               0.0s
+ => => transferring dockerfile: 253B                                                                               0.0s
+ => [internal] load metadata for docker.io/library/python:3.11-slim                                                6.3s
+ => [internal] load .dockerignore                                                                                  0.0s
+ => => transferring context: 2B                                                                                    0.0s
+ => [1/5] FROM docker.io/library/python:3.11-slim@sha256:da047cb8f9d1d98e5c070f5300ba9f7274e33b8fc0e5be5ed88740ae  0.0s
+ => => resolve docker.io/library/python:3.11-slim@sha256:da047cb8f9d1d98e5c070f5300ba9f7274e33b8fc0e5be5ed88740ae  0.0s
+ => [internal] load build context                                                                                  0.0s
+ => => transferring context: 6.75kB                                                                                0.0s
+ => CACHED [2/5] WORKDIR /app                                                                                      0.0s
+ => CACHED [3/5] COPY requirements.txt .                                                                           0.0s
+ => CACHED [4/5] RUN pip install --no-cache-dir -r requirements.txt                                                0.0s
+ => CACHED [5/5] COPY ./app ./app                                                                                  0.0s
+ => exporting to image                                                                                             0.0s
+ => => exporting layers                                                                                            0.0s
+ => => exporting manifest sha256:b7216165722eb71320b667f24ca54feda9da87c1e3bfb6af18256c172c095329                  0.0s
+ => => exporting config sha256:90fa5b15ab6a76189be94032f1a24f35a16a8305ac92a98356be3d99c7df72e8                    0.0s
+ => => exporting attestation manifest sha256:8e973e921418ca5bac56077e41a1f949484a5ebecb1f22951570fcff8fdf8414      0.0s
+ => => exporting manifest list sha256:f3a5bf83c5c2bf36e168cb0344fb05bd07918aec72beeba15ab8d20904903922             0.0s
+ => => naming to docker.io/library/task6-app:latest                                                                0.0s
+[+] up 13/13king to docker.io/library/task6-app:latest                                                             0.0s
+ ✔ Image ollama/ollama:latest                   Pulled                                                           1053.7s
+ ✔ Image task6-app                              Built                                                               6.7s
+ ✔ Network task6_student-net                    Created                                                             0.0s
+ ✔ Volume task6_ollama_data                     Created                                                             0.0s
+ ✔ Volume task6_dbdata_local                    Created                                                             0.0s
+ ✔ Container students-postgres-db-local         Healthy                                                             6.5s
+ ✔ Container students-ollama-llm                Started                                                             0.4s
+ ✔ Container students-liquibase-migration-local Exited                                                             11.3s
+ ✔ Container students-fastapi-app-local         Started                                                            11.3s
+```
+
 **Статус запущенных контейнеров:**
 ```make ps:```
-```text
+```
 NAME                         IMAGE                  COMMAND                  SERVICE   STATUS              PORTS
 students-fastapi-app-local   task6-app              "uvicorn app.main:ap…"   app       Up                  0.0.0.0:8000->8000/tcp
 students-ollama-llm          ollama/ollama:latest   "/bin/ollama serve"      ollama    Up                  0.0.0.0:11434->11434/tcp
@@ -743,8 +783,3 @@ docker compose -f compose.local.yaml down
  ✔ Container students-postgres-db-local         Removed                                                             0.1s
  ✔ Network task6_student-net                    Removed                                                             0.1s
  ```
-
- 
-
-
-
