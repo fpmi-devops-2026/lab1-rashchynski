@@ -652,5 +652,99 @@ $ docker compose down
  ✔ Network task5_student-net             Removed
  ```
 
+ ---
+
+## Задание 6. Настройка многосредовой инфраструктуры (Local, Dev, Prod), автоматизация через Makefile и интеграция LLM
+
+### Ход выполнения работы
+
+Описание конфигураций окружений:
+- **Local (`compose.local.yaml`)**: Полнофункциональный стек для разработки, включающий FastAPI, PostgreSQL, Liquibase и сервис Ollama (`ollama/ollama:latest`) для локального запуска моделей машинного обучения.
+- **Dev (`compose.dev.yaml`)**: Гибридная конфигурация для разработки с переопределенными переменными окружения (`.env.dev`) и портом приложения `8001`.
+- **Prod (`compose.prod.yaml`)**: Продакшн-конфигурация с отдельными переменными окружения (`.env.prod`), портом `8002` и политикой автоматического перезапуска `restart: always`.
+
+Автоматизация (Makefile):
+Создан файл `Makefile`, содержащий сценарии управления всеми тремя окружениями:
+```
+PHONY: local-up local-down dev-up dev-down prod-up prod-down ps clean
+
+local-up:
+	docker compose --env-file .env -f compose.local.yaml up -d --build
+
+local-down:
+	docker compose -f compose.local.yaml down
+
+dev-up:
+	docker compose --env-file .env.dev -f compose.dev.yaml up -d --build
+
+dev-down:
+	docker compose -f compose.dev.yaml down
+
+prod-up:
+	docker compose --env-file .env.prod -f compose.prod.yaml up -d --build
+
+prod-down:
+	docker compose -f compose.prod.yaml down
+
+ps:
+	docker compose -f compose.local.yaml ps
+
+clean:
+	docker system prune -f
+```
+
+Результаты запуска и тестирование Ollama   
+Запуск локального окружения выполнен командой `make local-up`:
+**Статус запущенных контейнеров:**
+```make ps:```
+```text
+NAME                         IMAGE                  COMMAND                  SERVICE   STATUS              PORTS
+students-fastapi-app-local   task6-app              "uvicorn app.main:ap…"   app       Up                  0.0.0.0:8000->8000/tcp
+students-ollama-llm          ollama/ollama:latest   "/bin/ollama serve"      ollama    Up                  0.0.0.0:11434->11434/tcp
+students-postgres-db-local   postgres:15-alpine     "docker-entrypoint.s…"   db        Up (healthy)        5432/tcp
+```
+
+**Тестирование модели `tinyllama` в контейнере Ollama:**
+```text
+nazar@MacBook-Air-Nazar task6 % docker exec -it students-ollama-llm ollama run tinyllama
+```
+```
+pulling manifest 
+verifying sha256 digest 
+writing manifest 
+success 
+>>> Hello
+I'm glad to be of help! If you have any more questions, feel free to ask. I'm always happy to provide more 
+detailed information and answer any questions you may have. Have a great day!
+>>> /bye
+What's next:
+    Try Docker Debug for seamless, persistent debugging tools in any container or image → docker debug students-ollama-llm
+    Learn more at https://docs.docker.com/go/debug-cli/
+```
+
+Проверка API Ollama:
+```
+curl http://localhost:11434/api/tags
+```
+```
+{"models":[{"name":"tinyllama:latest","model":"tinyllama:latest","modified_at":"2026-09-25T12:53:40.297500004Z","size":637700138,"digest":"2644915ede352ea7bdfaff0bfac0be74c719d5d5202acb63a6fb095b52f394a4","details":{"parent_model":"","format":"gguf","family":"llama","families":["llama"],"parameter_size":"1B","quantization_level":"Q4_0","context_length":2048,"embedding_length":2048},"capabilities":["completion"]}]}%   
+```
+
+Остановка стека:
+```
+make local-down
+```
+```
+docker compose -f compose.local.yaml down
+[+] down 5/5
+ ✔ Container students-fastapi-app-local         Removed                                                             0.4s
+ ✔ Container students-ollama-llm                Removed                                                             0.1s
+ ✔ Container students-liquibase-migration-local Removed                                                             0.0s
+ ✔ Container students-postgres-db-local         Removed                                                             0.1s
+ ✔ Network task6_student-net                    Removed                                                             0.1s
+ ```
+
+ 
+
 
 
