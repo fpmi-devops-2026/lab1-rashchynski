@@ -496,13 +496,15 @@ compose-nginx-proxy  | 192.168.65.1 - - [24/Sep/2026:13:47:44 +0000] "GET / HTTP
 ```
 $ docker compose down
 ```
+```
 [+] down 4/4
  ✔ Container compose-nginx-proxy Removed
  ✔ Container compose-flask-app   Removed
  ✔ Container compose-postgres-db Removed
  ✔ Network task4_frontend-net    Removed
  ✔ Network task4_backend-net     Removed
- ```
+ 
+```
 
 ---
 
@@ -1021,11 +1023,11 @@ docker compose -f compose.yaml -f compose.prod.yaml up -d
   2. .env файлы: Использование файла .env (который внесен в .gitignore) для проброса переменных окружения без явного хардкода в файлы конфигураций.
 * **Антипаттерн:** Хардкодить секреты в Dockerfile, передавать их через ARG или публиковать в Docker Hub.
 
-#### Какие ограничения имеет Docker Compose при работе в Production? Почему для кластеров используют оркестраторы (Kubernetes, Docker Swarm)?
+#### 31. Какие ограничения имеет Docker Compose при работе в Production? Почему для кластеров используют оркестраторы (Kubernetes, Docker Swarm)?
 * **Ограничения Compose:** Работает только на одной физической/виртуальной машине (одноузловой), не умеет автоматически перезапускать упавшие узлы кластера, распределять нагрузку между серверами, выполнять Rolling Updates без простоя и масштабироваться на сотни серверов.
 * **Зачем оркестраторы:** Kubernetes и Swarm обеспечивают отказоустойчивость, самовосстановление (self-healing), автомасштабирование и балансировку нагрузки в распределенном кластере серверов.
 
-#### Что такое Docker Swarm? Чем он отличается от Kubernetes?
+#### 32. Что такое Docker Swarm? Чем он отличается от Kubernetes?
 * **Docker Swarm** — встроенный в Docker инструмент оркестрации контейнерных кластеров.
 * **Сравнение:**
   1. Docker Swarm: Прост в настройке, использует стандартный CLI и Compose-файлы, идеален для небольших и средних проектов. Имеет меньшую функциональность
